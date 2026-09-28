@@ -570,11 +570,11 @@ describe('AgentToolRulesComponent', () => {
       expect(component.permissionOptions).toHaveLength(3)
     })
 
-    it('includes Allow, Deny, and AlwaysAsk', () => {
+    it('includes Deny, AlwaysAsk, and AlwaysAllow', () => {
       const values = component.permissionOptions.map((o) => o.value)
-      expect(values).toContain(ToolPermission.Allow)
       expect(values).toContain(ToolPermission.Deny)
       expect(values).toContain(ToolPermission.AlwaysAsk)
+      expect(values).toContain(ToolPermission.AlwaysAllow)
     })
   })
 })
