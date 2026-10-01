@@ -12,6 +12,7 @@ import { AutoCompleteModule } from 'primeng/autocomplete'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { TabsModule } from 'primeng/tabs'
 import { SelectModule } from 'primeng/select'
+import { TextareaModule } from 'primeng/textarea'
 import { Observable, map } from 'rxjs'
 
 import { Action, AngularAcceleratorModule, BreadcrumbService, ObjectDetailItem } from '@onecx/angular-accelerator'
@@ -46,6 +47,7 @@ import { AgentToolRulesComponent } from './tool-rules/tool-rules.component'
     MultiSelectModule,
     TabsModule,
     SelectModule,
+    TextareaModule,
     AsyncPipe,
     AngularAcceleratorModule,
     PortalPageComponent,
@@ -215,7 +217,7 @@ export class AgentDetailsComponent implements OnInit {
       {
         titleKey: 'AGENT_DETAILS.BREADCRUMB',
         labelKey: 'AGENT_DETAILS.BREADCRUMB',
-        routerLink: '/agent'
+        routerLink: '../'
       }
     ])
   }
