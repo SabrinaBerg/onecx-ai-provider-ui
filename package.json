@@ -65,7 +65,7 @@
     "@onecx/angular-testing": "^6.24.1",
     "@onecx/angular-utils": "^6.27.1",
     "@onecx/angular-webcomponents": "^6.27.1",
-    "@onecx/integration-interface": "^6.27.1",
+    "@onecx/integration-interface": "^6.28.0",
     "@onecx/ngrx-accelerator": "^6.27.1",
     "@onecx/nx-plugin": "^6.4.0",
     "@webcomponents/webcomponentsjs": "^2.8.0",
