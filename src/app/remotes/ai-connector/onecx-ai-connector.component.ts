@@ -58,7 +58,7 @@ export class OneCXAiConnectorComponent implements ocxRemoteComponent, ocxRemoteW
       return
     }
 
-    this.aiContextGatherer = new AiContextGatherer(async () => null)
+    this.aiContextGatherer = new AiContextGatherer(() => Promise.resolve(null))
     this.aiCompletionGatherer = new AiCompletionGatherer((request) => this.handleCompletion(request))
   }
 

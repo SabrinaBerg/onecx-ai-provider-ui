@@ -103,6 +103,13 @@ describe('OneCXAiConnectorComponent', () => {
     expect((AiCompletionGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(1)
   })
 
+  it('initializes gatherers when the remote component config input is set', () => {
+    component.ocxRemoteComponentConfig = remoteComponentConfig
+
+    expect((AiContextGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(1)
+    expect((AiCompletionGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(1)
+  })
+
   it('does not double-register when initialized twice', () => {
     component.ocxInitRemoteComponent(remoteComponentConfig)
     component.ocxInitRemoteComponent(remoteComponentConfig)
@@ -130,6 +137,25 @@ describe('OneCXAiConnectorComponent', () => {
         requestContext: expect.objectContaining({ agentId: 'agent-1' }),
         chatMessage: expect.objectContaining({ message: 'Do the thing' })
       })
+    )
+    expect(response).toEqual({ message: 'BFF says hi' })
+  })
+
+  it('handles a completion when the context gatherer is no longer available', async () => {
+    dispatchService.chat.mockReturnValue(of({ message: 'BFF says hi' } as never))
+    component.ocxInitRemoteComponent(remoteComponentConfig)
+
+    const answerer = (
+      AiCompletionGatherer as unknown as {
+        instances: { cb: (r: AiCompletionRequest) => Promise<unknown> }[]
+      }
+    ).instances[0]
+    component.ngOnDestroy()
+
+    const response = await answerer.cb(request)
+
+    expect(dispatchService.chat).toHaveBeenCalledWith(
+      expect.objectContaining({ requestContext: expect.objectContaining({ aiContext: [request.systemPrompt] }) })
     )
     expect(response).toEqual({ message: 'BFF says hi' })
   })
