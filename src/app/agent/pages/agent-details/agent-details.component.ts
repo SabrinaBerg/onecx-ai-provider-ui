@@ -6,6 +6,7 @@ import { Store } from '@ngrx/store'
 import { TranslateModule, TranslatePipe } from '@ngx-translate/core'
 import { PrimeIcons } from 'primeng/api'
 import { ButtonModule } from 'primeng/button'
+import { CheckboxModule } from 'primeng/checkbox'
 import { FloatLabelModule } from 'primeng/floatlabel'
 import { InputTextModule } from 'primeng/inputtext'
 import { AutoCompleteModule } from 'primeng/autocomplete'
@@ -16,6 +17,7 @@ import { TextareaModule } from 'primeng/textarea'
 import { Observable, map } from 'rxjs'
 
 import { Action, AngularAcceleratorModule, BreadcrumbService, ObjectDetailItem } from '@onecx/angular-accelerator'
+import { PortalMessageService } from '@onecx/angular-integration-interface'
 import { PortalPageComponent } from '@onecx/angular-utils'
 
 import {
@@ -47,6 +49,7 @@ import { AgentToolRulesComponent } from './tool-rules/tool-rules.component'
     MultiSelectModule,
     TabsModule,
     SelectModule,
+    CheckboxModule,
     TextareaModule,
     AsyncPipe,
     AngularAcceleratorModule,
@@ -60,8 +63,13 @@ import { AgentToolRulesComponent } from './tool-rules/tool-rules.component'
 export class AgentDetailsComponent implements OnInit {
   private readonly store = inject(Store)
   private readonly breadcrumbService = inject(BreadcrumbService)
+  private readonly messageService = inject(PortalMessageService)
   readonly filterKeys = Object.values(AgentFilterKeyEnum)
   readonly statusOptions = Object.values(AgentStatus)
+  readonly languageOptions = [
+    { code: 'en', labelKey: 'AGENT_DETAILS.VOICE.LANGUAGES.EN' },
+    { code: 'de', labelKey: 'AGENT_DETAILS.VOICE.LANGUAGES.DE' }
+  ]
   filterKeySuggestions: string[] = [...this.filterKeys]
 
   viewModel$: Observable<AgentDetailsViewModel> = this.store.select(selectAgentDetailsViewModel)
@@ -178,6 +186,8 @@ export class AgentDetailsComponent implements OnInit {
       tools: new FormControl<Tool[]>([]),
       groups: new FormControl<AgentGroup[]>([]),
       newGroupName: new FormControl<string | null>(null, [Validators.maxLength(255)]),
+      voiceEnabled: new FormControl<boolean>(false),
+      languageCode: new FormControl<string | null>(null),
       filters: new FormArray([])
     })
     this.formGroup.disable()
@@ -195,7 +205,9 @@ export class AgentDetailsComponent implements OnInit {
           scaffold: vm.details?.scaffold ?? null,
           tools: vm.details?.tools ?? [],
           groups: vm.details?.groups ?? [],
-          newGroupName: null
+          newGroupName: null,
+          voiceEnabled: vm.details?.voiceEnabled ?? false,
+          languageCode: vm.details?.languageCode ?? null
         })
         this.setFilters(vm.details?.filter ? [vm.details.filter] : [])
         this.formGroup.markAsPristine()
@@ -244,6 +256,15 @@ export class AgentDetailsComponent implements OnInit {
 
     const selectedProvider = this.formGroup.get('provider')?.value as Provider | null
     const selectedModel = this.formGroup.get('model')?.value as Model | null
+    const voiceEnabled = this.formGroup.get('voiceEnabled')?.value as boolean | undefined
+    const languageCode = this.formGroup.get('languageCode')?.value as string | null | undefined
+
+    if (voiceEnabled && !languageCode) {
+      this.messageService.error({
+        summaryKey: 'AGENT_DETAILS.VOICE.LANGUAGE_REQUIRED'
+      })
+      return
+    }
 
     const details: Agent = {
       ...this.currentDetails,
@@ -255,7 +276,9 @@ export class AgentDetailsComponent implements OnInit {
       scaffold: (this.formGroup.get('scaffold')?.value as Scaffold | null) ?? undefined,
       tools: (this.formGroup.get('tools')?.value as Tool[]) ?? [],
       groups: (this.formGroup.get('groups')?.value as AgentGroup[]) ?? [],
-      filter: selectedFilter
+      filter: selectedFilter,
+      voiceEnabled: voiceEnabled ?? undefined,
+      languageCode: languageCode ?? undefined
     }
 
     this.store.dispatch(

@@ -266,6 +266,8 @@ describe('AgentDetailsComponent', () => {
       tools: [],
       groups: [],
       newGroupName: null,
+      voiceEnabled: false,
+      languageCode: null,
       filters: []
     }
 
@@ -277,8 +279,11 @@ describe('AgentDetailsComponent', () => {
     store.refreshState()
 
     component.formGroup.setValue(agentForm)
-    component.save()
+    const actions = await firstValueFrom(component.headerActions$)
+    const saveAction = actions.find((a) => a.labelKey === 'AGENT_DETAILS.GENERAL.SAVE')
+    saveAction?.actionCallback?.()
 
+    expect(saveAction).toBeTruthy()
     expect(store.dispatch).toHaveBeenCalledTimes(1)
     expect(store.dispatch).toHaveBeenCalledWith(
       agentDetailsActions.saveButtonClicked({
@@ -292,7 +297,9 @@ describe('AgentDetailsComponent', () => {
           scaffold: undefined,
           tools: [],
           groups: [],
-          filter: undefined
+          filter: undefined,
+          voiceEnabled: false,
+          languageCode: undefined
         }
       })
     )
@@ -574,6 +581,111 @@ describe('AgentDetailsComponent', () => {
           details: expect.objectContaining({
             tools: [],
             groups: []
+          })
+        })
+      )
+    })
+  })
+
+  describe('voice', () => {
+    it('should render the voice checkbox and language select on the general tab', async () => {
+      const checkbox = document.querySelector('#agent_detail_voice_enabled')
+      expect(checkbox).toBeTruthy()
+
+      const languageSelect = document.querySelector('#agent_detail_language_code')
+      expect(languageSelect).toBeTruthy()
+    })
+
+    it('should expose a fixed set of pilot language options with i18n labels', () => {
+      expect(component.languageOptions).toEqual([
+        { code: 'en', labelKey: 'AGENT_DETAILS.VOICE.LANGUAGES.EN' },
+        { code: 'de', labelKey: 'AGENT_DETAILS.VOICE.LANGUAGES.DE' }
+      ])
+    })
+
+    it('should translate the pilot language option labels', () => {
+      const translateService = TestBed.inject(TranslateService)
+      const [english, german] = component.languageOptions
+      expect(translateService.instant(english?.labelKey ?? '')).toEqual('English')
+      expect(translateService.instant(german?.labelKey ?? '')).toEqual('German')
+    })
+
+    it('should patch voice settings from the view model details on load', () => {
+      store.overrideSelector(selectAgentDetailsViewModel, {
+        ...baseAgentDetailsViewModel,
+        editMode: false,
+        details: { id: '123', name: 'title', voiceEnabled: true, languageCode: 'de' }
+      })
+      store.refreshState()
+
+      expect(component.formGroup.getRawValue()).toEqual(
+        expect.objectContaining({
+          voiceEnabled: true,
+          languageCode: 'de'
+        })
+      )
+    })
+
+    it('should default voice settings to disabled when they are absent on the details', () => {
+      store.overrideSelector(selectAgentDetailsViewModel, {
+        ...baseAgentDetailsViewModel,
+        editMode: false,
+        details: { id: '123', name: 'title' }
+      })
+      store.refreshState()
+
+      expect(component.formGroup.getRawValue()).toEqual(
+        expect.objectContaining({
+          voiceEnabled: false,
+          languageCode: null
+        })
+      )
+    })
+
+    it('should block saving voice without a language and report an error', () => {
+      jest.spyOn(store, 'dispatch')
+      const messageError = jest.spyOn(component['messageService'], 'error').mockImplementation(() => {})
+      component.formGroup.patchValue({ voiceEnabled: true, languageCode: null })
+
+      component.save()
+
+      expect(store.dispatch).not.toHaveBeenCalled()
+      expect(messageError).toHaveBeenCalledWith({
+        summaryKey: 'AGENT_DETAILS.VOICE.LANGUAGE_REQUIRED'
+      })
+    })
+
+    it('should allow saving when voice is disabled and no language is set', () => {
+      jest.spyOn(store, 'dispatch')
+      const messageError = jest.spyOn(component['messageService'], 'error').mockImplementation(() => {})
+      component.formGroup.patchValue({ voiceEnabled: false, languageCode: null })
+
+      component.save()
+
+      expect(store.dispatch).toHaveBeenCalledTimes(1)
+      expect(store.dispatch).toHaveBeenCalledWith(
+        agentDetailsActions.saveButtonClicked({
+          details: expect.objectContaining({
+            voiceEnabled: false,
+            languageCode: undefined
+          })
+        })
+      )
+      expect(messageError).not.toHaveBeenCalled()
+    })
+
+    it('should include the voice settings in the save payload when a language is selected', () => {
+      jest.spyOn(store, 'dispatch')
+      component.formGroup.patchValue({ voiceEnabled: true, languageCode: 'en' })
+
+      component.save()
+
+      expect(store.dispatch).toHaveBeenCalledTimes(1)
+      expect(store.dispatch).toHaveBeenCalledWith(
+        agentDetailsActions.saveButtonClicked({
+          details: expect.objectContaining({
+            voiceEnabled: true,
+            languageCode: 'en'
           })
         })
       )
