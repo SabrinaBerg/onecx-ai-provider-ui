@@ -158,7 +158,10 @@ describe('OneCXAiConnectorComponent', () => {
     expect(dispatchService.chat).toHaveBeenCalledWith(
       expect.objectContaining({
         requestContext: expect.objectContaining({ agentId: 'agent-1' }),
-        chatMessage: expect.objectContaining({ message: 'You are a helpful agent\n\nDo the thing' })
+        chatMessage: expect.objectContaining({ message: 'Do the thing', type: 'USER' }),
+        conversation: expect.objectContaining({
+          history: [{ message: 'You are a helpful agent', type: 'SYSTEM' }]
+        })
       })
     )
     expect(response).toEqual({ message: 'BFF says hi' })
@@ -179,7 +182,10 @@ describe('OneCXAiConnectorComponent', () => {
 
     expect(dispatchService.chat).toHaveBeenCalledWith(
       expect.objectContaining({
-        chatMessage: expect.objectContaining({ message: 'You are a helpful agent\n\nDo the thing' }),
+        chatMessage: expect.objectContaining({ message: 'Do the thing', type: 'USER' }),
+        conversation: expect.objectContaining({
+          history: [{ message: 'You are a helpful agent', type: 'SYSTEM' }]
+        }),
         requestContext: expect.objectContaining({ aiContext: [] })
       })
     )

@@ -12,6 +12,7 @@ import {
 } from '@onecx/integration-interface'
 
 import { APIConfiguration, DispatchService } from 'src/app/shared/generated'
+import { createLogger } from 'src/app/shared/utils/logger.utils'
 import { environment } from 'src/environments/environment'
 
 import { toChatRequest } from './onecx-ai-connector.mapper'
@@ -40,6 +41,7 @@ import { toChatRequest } from './onecx-ai-connector.mapper'
 export class OneCXAiConnectorComponent implements ocxRemoteComponent, ocxRemoteWebcomponent, OnDestroy {
   private readonly destroyRef = inject(DestroyRef)
   private readonly dispatchService = inject(DispatchService)
+  private readonly logger = createLogger('OneCXAiConnectorComponent')
 
   private aiCompletionGatherer: AiCompletionGatherer | undefined
   private aiContextGatherer: AiContextGatherer | undefined
@@ -93,7 +95,7 @@ export class OneCXAiConnectorComponent implements ocxRemoteComponent, ocxRemoteW
       }
       return { message: response.message }
     } catch (error) {
-      console.error('[OneCXAiConnectorComponent] Failed to handle AI completion request, returning no response', error)
+      this.logger.error('Failed to handle AI completion request, returning no response', error)
       return null
     }
   }

@@ -1,6 +1,11 @@
 import type { AiCompletionRequest, AiContextResponse } from '@onecx/integration-interface'
 
-import { ChatMessageTypeEnum, ChatRequest, RequestContext } from 'src/app/shared/generated'
+import {
+  ChatMessageTypeEnum,
+  ChatRequest,
+  ConversationConversationTypeEnum,
+  RequestContext
+} from 'src/app/shared/generated'
 
 /**
  * Serialize the responses gathered from the AiContextGatherer into the flat string array the BFF
@@ -26,9 +31,15 @@ export function serializeGatheredContext(gathered: (AiContextResponse | null)[])
 export function toChatRequest(request: AiCompletionRequest, gathered: (AiContextResponse | null)[]): ChatRequest {
   return {
     chatMessage: {
-      message: request.systemPrompt ? `${request.systemPrompt}\n\n${request.message}` : request.message,
+      message: request.message,
       type: ChatMessageTypeEnum.User
     },
+    conversation: request.systemPrompt
+      ? {
+          conversationType: ConversationConversationTypeEnum.QAndA,
+          history: [{ message: request.systemPrompt, type: ChatMessageTypeEnum.System }]
+        }
+      : undefined,
     requestContext: buildRequestContext(request, gathered)
   }
 }

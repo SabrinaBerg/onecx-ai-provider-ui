@@ -1,6 +1,6 @@
 import type { AiCompletionRequest, AiContextResponse } from '@onecx/integration-interface'
 
-import { ChatMessageTypeEnum } from 'src/app/shared/generated'
+import { ChatMessageTypeEnum, ConversationConversationTypeEnum } from 'src/app/shared/generated'
 
 import { serializeGatheredContext, toChatRequest } from './onecx-ai-connector.mapper'
 
@@ -58,12 +58,16 @@ describe('toChatRequest', () => {
     expect(chatRequest.requestContext?.agentId).toBe('agent-1')
   })
 
-  it('prepends the per-request instruction to the user message and keeps it out of aiContext', () => {
+  it('passes the per-request instruction as a SYSTEM message in conversation history', () => {
     const chatRequest = toChatRequest(completionRequest, [gatheredContext])
 
     expect(chatRequest.chatMessage).toEqual({
-      message: 'Summarize in 5 sentences\n\nDo the thing',
+      message: 'Do the thing',
       type: ChatMessageTypeEnum.User
+    })
+    expect(chatRequest.conversation).toEqual({
+      conversationType: ConversationConversationTypeEnum.QAndA,
+      history: [{ message: 'Summarize in 5 sentences', type: ChatMessageTypeEnum.System }]
     })
     expect(chatRequest.requestContext?.aiContext).toEqual(['caller-provided-context', JSON.stringify(gatheredContext)])
   })
@@ -72,6 +76,7 @@ describe('toChatRequest', () => {
     const chatRequest = toChatRequest(completionRequestWithoutInstruction, [])
 
     expect(chatRequest.chatMessage?.message).toBe('Do the thing')
+    expect(chatRequest.conversation).toBeUndefined()
     expect(chatRequest.requestContext?.aiContext).toEqual(['caller-provided-context'])
   })
 
@@ -88,7 +93,7 @@ describe('toChatRequest', () => {
   })
 
   it('sends no conversation (one-shot completion, no state)', () => {
-    const chatRequest = toChatRequest(completionRequest, [gatheredContext])
+    const chatRequest = toChatRequest(completionRequestWithoutInstruction, [gatheredContext])
 
     expect(chatRequest.conversation).toBeUndefined()
     expect(chatRequest.chatMessage?.conversationId).toBeUndefined()
