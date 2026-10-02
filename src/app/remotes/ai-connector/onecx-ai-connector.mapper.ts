@@ -26,7 +26,7 @@ export function serializeGatheredContext(gathered: (AiContextResponse | null)[])
 export function toChatRequest(request: AiCompletionRequest, gathered: (AiContextResponse | null)[]): ChatRequest {
   return {
     chatMessage: {
-      message: request.message,
+      message: request.systemPrompt ? `${request.systemPrompt}\n\n${request.message}` : request.message,
       type: ChatMessageTypeEnum.User
     },
     requestContext: buildRequestContext(request, gathered)
@@ -41,9 +41,5 @@ function buildRequestContext(request: AiCompletionRequest, gathered: (AiContextR
 }
 
 function buildAiContext(request: AiCompletionRequest, gathered: (AiContextResponse | null)[]): string[] {
-  return [
-    ...(request.systemPrompt ? [request.systemPrompt] : []),
-    ...request.aiContext,
-    ...serializeGatheredContext(gathered)
-  ]
+  return [...request.aiContext, ...serializeGatheredContext(gathered)]
 }

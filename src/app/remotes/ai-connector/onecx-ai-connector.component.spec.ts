@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs'
 
 import { AiContextResponse, type AiCompletionRequest } from '@onecx/integration-interface'
 
-import { DispatchService } from 'src/app/shared/generated'
+import { APIConfiguration, DispatchService } from 'src/app/shared/generated'
 
 import { OneCXAiConnectorComponent } from './onecx-ai-connector.component'
 
@@ -72,13 +72,16 @@ const remoteComponentConfig = {
 describe('OneCXAiConnectorComponent', () => {
   let fixture: ComponentFixture<OneCXAiConnectorComponent>
   let component: OneCXAiConnectorComponent
-  let dispatchService: { chat: jest.Mock }
+  let dispatchService: { chat: jest.Mock; configuration: APIConfiguration }
 
   beforeEach(() => {
     ;(AiCompletionGatherer as unknown as { instances: unknown[] }).instances.length = 0
     ;(AiContextGatherer as unknown as { instances: unknown[] }).instances.length = 0
 
-    dispatchService = { chat: jest.fn() }
+    dispatchService = {
+      chat: jest.fn(),
+      configuration: new APIConfiguration({ credentials: { token: 'test-token' } })
+    }
 
     TestBed.configureTestingModule({
       imports: [OneCXAiConnectorComponent],
@@ -101,6 +104,8 @@ describe('OneCXAiConnectorComponent', () => {
     component.ocxInitRemoteComponent(remoteComponentConfig)
     expect((AiContextGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(1)
     expect((AiCompletionGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(1)
+    expect(dispatchService.configuration.basePath).toBe('http://localhost:4200/bff')
+    expect(dispatchService.configuration.credentials).toEqual({ token: 'test-token' })
   })
 
   it('initializes gatherers when the remote component config input is set', () => {
@@ -113,6 +118,24 @@ describe('OneCXAiConnectorComponent', () => {
   it('does not double-register when initialized twice', () => {
     component.ocxInitRemoteComponent(remoteComponentConfig)
     component.ocxInitRemoteComponent(remoteComponentConfig)
+    expect((AiCompletionGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(1)
+  })
+
+  it('initializes the context gatherer when only the completion gatherer exists', () => {
+    Object.assign(component, { aiCompletionGatherer: { destroy: jest.fn() } })
+
+    component.ocxInitRemoteComponent(remoteComponentConfig)
+
+    expect((AiContextGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(1)
+    expect((AiCompletionGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(0)
+  })
+
+  it('initializes the completion gatherer when only the context gatherer exists', () => {
+    Object.assign(component, { aiContextGatherer: { destroy: jest.fn() } })
+
+    component.ocxInitRemoteComponent(remoteComponentConfig)
+
+    expect((AiContextGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(0)
     expect((AiCompletionGatherer as unknown as { instances: unknown[] }).instances).toHaveLength(1)
   })
 
@@ -135,7 +158,7 @@ describe('OneCXAiConnectorComponent', () => {
     expect(dispatchService.chat).toHaveBeenCalledWith(
       expect.objectContaining({
         requestContext: expect.objectContaining({ agentId: 'agent-1' }),
-        chatMessage: expect.objectContaining({ message: 'Do the thing' })
+        chatMessage: expect.objectContaining({ message: 'You are a helpful agent\n\nDo the thing' })
       })
     )
     expect(response).toEqual({ message: 'BFF says hi' })
@@ -155,7 +178,10 @@ describe('OneCXAiConnectorComponent', () => {
     const response = await answerer.cb(request)
 
     expect(dispatchService.chat).toHaveBeenCalledWith(
-      expect.objectContaining({ requestContext: expect.objectContaining({ aiContext: [request.systemPrompt] }) })
+      expect.objectContaining({
+        chatMessage: expect.objectContaining({ message: 'You are a helpful agent\n\nDo the thing' }),
+        requestContext: expect.objectContaining({ aiContext: [] })
+      })
     )
     expect(response).toEqual({ message: 'BFF says hi' })
   })

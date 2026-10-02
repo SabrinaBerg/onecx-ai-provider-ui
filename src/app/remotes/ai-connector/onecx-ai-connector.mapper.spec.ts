@@ -44,7 +44,7 @@ describe('serializeGatheredContext', () => {
 
 describe('toChatRequest', () => {
   it('maps the caller message to a single USER chat message', () => {
-    const chatRequest = toChatRequest(completionRequest, [])
+    const chatRequest = toChatRequest(completionRequestWithoutInstruction, [])
 
     expect(chatRequest.chatMessage).toEqual({
       message: 'Do the thing',
@@ -58,19 +58,20 @@ describe('toChatRequest', () => {
     expect(chatRequest.requestContext?.agentId).toBe('agent-1')
   })
 
-  it('places the per-request task instruction as the first aiContext entry (before caller + gathered context)', () => {
+  it('prepends the per-request instruction to the user message and keeps it out of aiContext', () => {
     const chatRequest = toChatRequest(completionRequest, [gatheredContext])
 
-    expect(chatRequest.requestContext?.aiContext).toEqual([
-      'Summarize in 5 sentences',
-      'caller-provided-context',
-      JSON.stringify(gatheredContext)
-    ])
+    expect(chatRequest.chatMessage).toEqual({
+      message: 'Summarize in 5 sentences\n\nDo the thing',
+      type: ChatMessageTypeEnum.User
+    })
+    expect(chatRequest.requestContext?.aiContext).toEqual(['caller-provided-context', JSON.stringify(gatheredContext)])
   })
 
   it('omits the instruction from aiContext when the completion request has no instruction', () => {
     const chatRequest = toChatRequest(completionRequestWithoutInstruction, [])
 
+    expect(chatRequest.chatMessage?.message).toBe('Do the thing')
     expect(chatRequest.requestContext?.aiContext).toEqual(['caller-provided-context'])
   })
 

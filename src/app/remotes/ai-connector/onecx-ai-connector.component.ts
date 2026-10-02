@@ -1,3 +1,4 @@
+import { Location } from '@angular/common'
 import { ChangeDetectionStrategy, Component, DestroyRef, Input, inject, type OnDestroy } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 
@@ -10,8 +11,8 @@ import {
   type AiContextResponse
 } from '@onecx/integration-interface'
 
-import { DispatchService } from 'src/app/shared/generated'
-import { createLogger } from 'src/app/shared/utils/logger.utils'
+import { APIConfiguration, DispatchService } from 'src/app/shared/generated'
+import { environment } from 'src/environments/environment'
 
 import { toChatRequest } from './onecx-ai-connector.mapper'
 
@@ -39,7 +40,6 @@ import { toChatRequest } from './onecx-ai-connector.mapper'
 export class OneCXAiConnectorComponent implements ocxRemoteComponent, ocxRemoteWebcomponent, OnDestroy {
   private readonly destroyRef = inject(DestroyRef)
   private readonly dispatchService = inject(DispatchService)
-  private readonly logger = createLogger('OneCXAiConnectorComponent')
 
   private aiCompletionGatherer: AiCompletionGatherer | undefined
   private aiContextGatherer: AiContextGatherer | undefined
@@ -53,13 +53,21 @@ export class OneCXAiConnectorComponent implements ocxRemoteComponent, ocxRemoteW
     this.destroyRef.onDestroy(() => this.ngOnDestroy())
   }
 
-  ocxInitRemoteComponent(_config: RemoteComponentConfig): void {
-    if (this.aiCompletionGatherer || this.aiContextGatherer) {
-      return
+  ocxInitRemoteComponent(config: RemoteComponentConfig): void {
+    const currentConfiguration = this.dispatchService.configuration
+    this.dispatchService.configuration = new APIConfiguration({
+      basePath: Location.joinWithSlash(config.baseUrl, environment.apiPrefix),
+      credentials: currentConfiguration.credentials,
+      encodeParam: currentConfiguration.encodeParam
+    })
+
+    if (!this.aiContextGatherer) {
+      this.aiContextGatherer = new AiContextGatherer(() => Promise.resolve(null))
     }
 
-    this.aiContextGatherer = new AiContextGatherer(() => Promise.resolve(null))
-    this.aiCompletionGatherer = new AiCompletionGatherer((request) => this.handleCompletion(request))
+    if (!this.aiCompletionGatherer) {
+      this.aiCompletionGatherer = new AiCompletionGatherer((request) => this.handleCompletion(request))
+    }
   }
 
   ngOnDestroy(): void {
@@ -85,7 +93,7 @@ export class OneCXAiConnectorComponent implements ocxRemoteComponent, ocxRemoteW
       }
       return { message: response.message }
     } catch (error) {
-      this.logger.error('Failed to handle AI completion request, returning no response', error)
+      console.error('[OneCXAiConnectorComponent] Failed to handle AI completion request, returning no response', error)
       return null
     }
   }
