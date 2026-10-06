@@ -95,6 +95,7 @@ export class OneCXAiConnectorComponent implements ocxRemoteComponent, ocxRemoteW
       }
       return { message: response.message }
     } catch (error) {
+      // TODO Use OneCX Logger after upgrade to v8 and remove related files from this repo
       this.logger.error('Failed to handle AI completion request, returning no response', error)
       return null
     }
